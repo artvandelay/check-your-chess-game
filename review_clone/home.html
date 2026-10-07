@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check your chess game.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: oklch(17% 0.010 250);
+  --surface: oklch(21% 0.012 250);
+  --surface-2: oklch(25% 0.014 250);
+  --surface-3: oklch(29% 0.016 250);
+  --line: oklch(31% 0.014 250);
+  --line-strong: oklch(38% 0.016 250);
+  --text: oklch(94% 0.005 250);
+  --muted: oklch(74% 0.012 250);
+  --faint: oklch(62% 0.012 250);
+  --accent: oklch(74% 0.12 230);
+  --accent-hover: oklch(80% 0.11 230);
+  --c-best: oklch(76% 0.14 145);
+  --c-blunder: oklch(64% 0.20 25);
+  --font-ui: "IBM Plex Sans", "Helvetica Neue", Helvetica, sans-serif;
+  --font-num: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 16px;
+  --s4: 24px;
+  --s5: 40px;
+  --r-sm: 4px;
+  --r-md: 8px;
+  --ease: 0.2s ease;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-ui); font-size: var(--text-sm); }
+button, textarea, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 720px; margin: 0 auto; padding: var(--s5) var(--s4); }
+h1 { margin: 0 0 var(--s4); font-family: var(--font-ui); font-weight: 500; font-style: normal; font-size: var(--text-xl); line-height: 1.2; }
+.library h2 { margin: 0 0 var(--s2); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.library { margin-bottom: var(--s4); }
+.games a {
+  display: flex; justify-content: space-between; gap: var(--s3); width: 100%; text-align: left; text-decoration: none;
+  padding: var(--s3); border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  transition: background var(--ease), border-color var(--ease);
+}
+.games a:hover { background: var(--surface-2); border-color: var(--line-strong); }
+.lib-bar { display: flex; justify-content: space-between; align-items: center; gap: var(--s3); margin-bottom: var(--s2); }
+.library .lib-bar h2 { margin: 0; }
+.lib-tools { display: flex; align-items: center; justify-content: flex-end; gap: var(--s2); margin-left: auto; }
+.lib-tools[hidden] { display: none; }
+.lib-count { color: var(--muted); font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: var(--text-xs); }
+.lib-trash {
+  width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer;
+  transition: background var(--ease), border-color var(--ease), color var(--ease), transform var(--ease);
+}
+.lib-trash:hover { background: var(--surface-2); border-color: var(--line-strong); }
+.lib-trash:active { transform: scale(0.96); }
+.lib-trash svg { display: block; }
+#library { gap: 2px; }
+#library .lib-face {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
+  width: 100%; text-align: left; user-select: none; cursor: pointer;
+  padding: 8px 12px; border-radius: var(--r-sm); border: 1px solid transparent;
+  background: transparent; color: var(--text);
+  transition: background var(--ease), border-color var(--ease);
+}
+#library .lib-end { display: flex; align-items: center; gap: var(--s3); flex: none; }
+#library .lib-row .lib-face:hover { background: var(--surface); border-color: transparent; }
+#library .lib-row.on .lib-face,
+#library .lib-row.on .lib-face:hover {
+  background: color-mix(in oklch, var(--accent) 22%, transparent);
+  border-color: transparent;
+}
+#library .see-review {
+  display: none; flex: none; align-items: center; justify-content: center;
+  width: auto; height: 32px; padding: 0 var(--s2);
+  border-radius: var(--r-sm); border: 1px solid transparent;
+  background: transparent; color: var(--accent);
+  font-family: var(--font-ui); font-size: var(--text-sm); font-weight: 500;
+  line-height: 1; text-decoration: none; white-space: nowrap; cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+}
+#library .lib-row.on .see-review { display: inline-flex; }
+#library .see-review:hover {
+  background: color-mix(in oklch, var(--accent) 12%, transparent);
+  border-color: transparent; color: var(--accent);
+}
+form { display: flex; flex-direction: column; gap: var(--s3); }
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+}
+.field {
+  display: flex; flex-direction: column; gap: var(--s2);
+  padding: var(--s3);
+}
+.field + .field { border-top: 1px solid var(--line); }
+.field-label { font-size: var(--text-base); font-weight: 600; color: var(--text); line-height: 1.2; }
+.hint { margin: 0; color: var(--faint); font-size: var(--text-xs); line-height: 1.3; }
+.field input[type="text"],
+textarea {
+  width: 100%; padding: var(--s3);
+  border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--bg); color: var(--text);
+  font-family: var(--font-num); font-size: var(--text-sm); line-height: 1.45;
+  transition: border-color var(--ease);
+}
+.field input[type="text"] { height: 40px; padding: 0 var(--s3); }
+textarea { resize: vertical; }
+.field input[type="text"]:hover,
+textarea:hover { border-color: var(--line-strong); }
+.field input::placeholder,
+textarea::placeholder { color: var(--faint); }
+.field .file { align-self: flex-start; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.file {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 var(--s3);
+  border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface-2); cursor: pointer;
+  transition: background var(--ease), border-color var(--ease), transform var(--ease);
+}
+.file:hover { background: var(--surface-3); border-color: var(--line-strong); }
+.file:active { transform: scale(0.98); }
+.file input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.depths { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+.depths button {
+  height: 32px; padding: 0 var(--s3); border: 0; border-radius: 0;
+  background: transparent; color: var(--muted); font-size: var(--text-xs); cursor: pointer;
+  transition: background var(--ease), color var(--ease);
+}
+.depths button + button { border-left: 1px solid var(--line); }
+.depths button:hover { background: var(--surface-2); color: var(--text); }
+.depths button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+.submit {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 var(--s3);
+  border: 1px solid var(--accent); border-radius: var(--r-sm);
+  background: var(--accent); color: var(--bg); font-weight: 600; cursor: pointer;
+  transition: background var(--ease), border-color var(--ease), transform var(--ease);
+}
+.submit:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+.submit:active:not(:disabled) { transform: scale(0.98); }
+.submit:disabled { opacity: 0.45; cursor: not-allowed; }
+.err { margin: 0; color: var(--c-blunder); }
+.progress { margin: 0; color: var(--muted); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.games { display: flex; flex-direction: column; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
+#games { gap: 2px; }
+.games .meta { color: var(--faint); font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: var(--text-xs); }
+.pick-note { margin: 0 0 var(--s3); color: var(--muted); font-size: var(--text-sm); }
+.pick-row {
+  display: flex; align-items: center; gap: var(--s2);
+  padding: 4px 8px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--bg);
+  line-height: 1.25;
+}
+.pick-main { display: flex; align-items: baseline; gap: var(--s2); min-width: 0; flex: 1; }
+.pick-row .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-row .meta { flex: none; white-space: nowrap; }
+.pick-row .outcome {
+  flex: none; align-self: center; margin-left: var(--s3); white-space: nowrap;
+  font-size: var(--text-sm); font-weight: 600; line-height: 1.2;
+}
+.pick-row .outcome-win { color: var(--c-best); }
+.pick-row .outcome-loss { color: var(--c-blunder); }
+.pick-row .outcome-draw { color: var(--faint); }
+.more-games {
+  margin: var(--s2) 0 0; padding: 0; border: 0; background: transparent;
+  color: var(--accent); font-family: var(--font-ui); font-size: var(--text-sm); font-weight: 500;
+  line-height: 1.3; cursor: pointer;
+}
+.more-games:hover { color: var(--accent-hover); }
+.row-go, .row-open {
+  flex: none; height: 32px; padding: 0 var(--s3); border-radius: var(--r-sm);
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--text);
+  text-decoration: none; display: inline-flex; align-items: center; cursor: pointer;
+  font-family: var(--font-num); font-size: var(--text-xs);
+  transition: background var(--ease), border-color var(--ease), transform var(--ease);
+}
+.row-go:hover:not(:disabled), .row-open:hover { background: var(--surface-3); border-color: var(--line-strong); }
+.row-go:active:not(:disabled), .row-open:active { transform: scale(0.98); }
+.row-go:disabled { opacity: 0.45; cursor: not-allowed; }
+#pick h2 { margin: var(--s4) 0 var(--s2); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.tick { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--accent); }
+.pick-row.on { border-color: color-mix(in oklch, var(--accent) 50%, var(--line)); background: color-mix(in oklch, var(--accent) 12%, var(--bg)); }
+.row-status { flex: none; min-width: 72px; text-align: right; color: var(--muted); font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: var(--text-xs); }
+.row-status:empty { display: none; }
+#float {
+  position: fixed; left: 50%; bottom: var(--s4); transform: translateX(-50%); z-index: 5;
+}
+#float button {
+  height: 32px; padding: 0 var(--s3); border: 1px solid var(--accent); border-radius: var(--r-sm);
+  background: var(--accent); color: var(--bg); font-weight: 600; cursor: pointer;
+  box-shadow: 0 8px 24px oklch(0% 0 0 / 0.35);
+  transition: background var(--ease), border-color var(--ease), transform var(--ease);
+}
+#float button:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+#float button:active:not(:disabled) { transform: scale(0.98); }
+#float button:disabled { opacity: 0.45; cursor: not-allowed; }
+.lead { margin: -16px 0 var(--s4); color: var(--muted); font-size: var(--text-sm); line-height: 1.4; }
+.think { display: inline-flex; align-items: center; gap: var(--s2); }
+.think > span { color: var(--muted); font-size: var(--text-xs); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Check your chess game.</h1>
+  <p class="lead">We look at every move and say if it was good or bad.</p>
+  <form id="form">
+    <div class="card">
+      <div class="field">
+        <label class="field-label" for="name">Chess.com name</label>
+        <p class="hint" id="name-hint">Their username.</p>
+        <input id="name" type="text" placeholder="hikaru" autocomplete="off" spellcheck="false" aria-describedby="name-hint">
+      </div>
+      <div class="field">
+        <label class="field-label" for="link">Chess.com link</label>
+        <p class="hint" id="link-hint">The link to one game on Chess.com.</p>
+        <input id="link" type="text" placeholder="https://www.chess.com/game/..." autocomplete="off" spellcheck="false" aria-describedby="link-hint">
+      </div>
+      <div class="field">
+        <label class="field-label" for="moves">The game file</label>
+        <p class="hint" id="moves-hint">A PGN file. That is the moves, saved as text. If the file has many games, you will pick which one.</p>
+        <textarea id="moves" rows="4" placeholder="Paste a PGN here" spellcheck="false" aria-describedby="moves-hint"></textarea>
+        <label class="file">Or pick a PGN file
+          <input id="file" type="file" accept=".pgn,text/plain" title="PGN file" aria-label="PGN file">
+        </label>
+      </div>
+    </div>
+    <div class="row">
+      <div class="think">
+        <span>How hard it thinks</span>
+        <div class="depths" role="group" aria-label="How hard it thinks">
+          <button type="button" data-depth="12" title="Depth 12">Fast</button>
+          <button type="button" data-depth="16" aria-pressed="true" title="Depth 16">Normal</button>
+          <button type="button" data-depth="20" title="Depth 20">Deep</button>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <button id="go" class="submit" type="submit">Review</button>
+      <p id="progress" class="progress" aria-live="polite"></p>
+    </div>
+    <p id="error" class="err" role="alert"></p>
+    <div id="pick" hidden>
+      <h2 id="pick-title"></h2>
+      <p id="pick-note" class="pick-note"></p>
+      <ul id="games" class="games"></ul>
+    </div>
+  </form>
+  <section id="library-wrap" class="library" hidden>
+    <div class="lib-bar">
+      <h2>Already reviewed</h2>
+      <div id="lib-tools" class="lib-tools" hidden>
+        <span id="lib-count" class="lib-count"></span>
+        <button id="lib-bulk" class="lib-trash" type="button" aria-label="Delete selected" title="Delete selected">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M3 4.25h10M6.25 4.25V3.1a.6.6 0 0 1 .6-.6h2.3a.6.6 0 0 1 .6.6v1.15M4.15 4.25l.55 8.15a.7.7 0 0 0 .7.6h5.2a.7.7 0 0 0 .7-.6l.55-8.15"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <ul id="library" class="games"></ul>
+  </section>
+</main>
+<div id="float" hidden>
+  <button id="float-go" type="button">Start reviewing</button>
+</div>
+<script>
+const nameInput = document.getElementById('name');
+const linkInput = document.getElementById('link');
+const movesInput = document.getElementById('moves');
+const file = document.getElementById('file');
+const go = document.getElementById('go');
+const progress = document.getElementById('progress');
+const error = document.getElementById('error');
+const games = document.getElementById('games');
+const floatBar = document.getElementById('float');
+const floatGo = document.getElementById('float-go');
+const bodies = new Map();
+let depth = 16;
+let queue = [];
+let pumping = false;
+
+document.querySelectorAll('.depths button').forEach(button => {
+  button.addEventListener('click', () => {
+    depth = Number(button.dataset.depth);
+    document.querySelectorAll('.depths button').forEach(other => {
+      other.setAttribute('aria-pressed', String(other === button));
+    });
+  });
+});
+
+file.addEventListener('change', () => {
+  const chosen = file.files && file.files[0];
+  if (!chosen) return;
+  const reader = new FileReader();
+  reader.onload = () => { movesInput.value = String(reader.result || ''); };
+  reader.readAsText(chosen);
+});
+
+function clearOtherFields(keep) {
+  if (!keep) return;
+  [nameInput, linkInput, movesInput].forEach(el => {
+    if (el !== keep) el.value = '';
+  });
+}
+
+function showError(message) {
+  error.textContent = message || '';
+}
+
+function setBusy(busy) {
+  go.disabled = busy;
+  go.textContent = busy ? 'Looking up…' : 'Review';
+}
+
+async function postReview(body) {
+  const res = await fetch('/review', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  return data;
+}
+
+function selectableRows() {
+  return [...games.querySelectorAll('.pick-row.on')].filter(row => !row.dataset.state);
+}
+
+function updateFloat() {
+  const n = selectableRows().length;
+  floatBar.hidden = n === 0;
+  floatGo.disabled = pumping;
+  const word = n === 1 ? 'game' : 'games';
+  floatGo.textContent = 'Start reviewing ' + n + ' ' + word;
+}
+
+const PAGE = 10;
+let pendingGames = [];
+
+function showPick(title, note) {
+  document.getElementById('pick').hidden = false;
+  document.getElementById('pick-title').textContent = title;
+  document.getElementById('pick-note').textContent = note;
+  games.textContent = '';
+  pendingGames = [];
+  const more = document.getElementById('more-games');
+  if (more) more.remove();
+  bodies.clear();
+  updateFloat();
+}
+
+function moreLabel(remain) {
+  return remain < PAGE ? 'Show the rest' : 'Show 10 more';
+}
+
+function revealNext() {
+  pendingGames.splice(0, PAGE).forEach(item => pickRow(item.title, item.meta, item.body, item.outcome));
+  let more = document.getElementById('more-games');
+  if (!pendingGames.length) {
+    if (more) more.remove();
+    return;
+  }
+  if (!more) {
+    more = document.createElement('button');
+    more.type = 'button';
+    more.id = 'more-games';
+    more.className = 'more-games';
+    more.addEventListener('click', revealNext);
+    games.insertAdjacentElement('afterend', more);
+  }
+  more.textContent = moreLabel(pendingGames.length);
+}
+
+function resultPhrase(player, game) {
+  const result = game && game.result;
+  const name = String(player || '').trim();
+  if (result === 'win' && name) return {text: name + ' won', kind: 'win'};
+  if (result === 'loss' && name) return {text: name + ' lost', kind: 'loss'};
+  if (result === 'draw') return {text: 'Draw', kind: 'draw'};
+  return null;
+}
+
+function fillGames(list) {
+  pendingGames = list.map(game => {
+    const word = game.result;
+    const bare = word === 'win' || word === 'loss' || word === 'draw';
+    return {
+      title: game.white + ' vs ' + game.black,
+      meta: [game.date, game.time_class, game.outcome || bare ? '' : word].filter(Boolean).join('  '),
+      body: game.body,
+      outcome: game.outcome || null,
+    };
+  });
+  revealNext();
+}
+
+function pickRow(title, meta, body, outcome) {
+  const row = document.createElement('li');
+  row.className = 'pick-row';
+  const box = document.createElement('input');
+  box.type = 'checkbox';
+  box.className = 'tick';
+  box.setAttribute('aria-label', 'Select ' + title);
+  const info = document.createElement('div');
+  info.className = 'pick-main';
+  const who = document.createElement('span');
+  who.className = 'who';
+  who.textContent = title;
+  const sub = document.createElement('span');
+  sub.className = 'meta';
+  sub.textContent = meta;
+  info.append(who);
+  const status = document.createElement('span');
+  status.className = 'row-status';
+  bodies.set(row, body);
+  const mark = () => {
+    if (row.dataset.state) return;
+    row.classList.toggle('on', box.checked);
+    updateFloat();
+  };
+  box.addEventListener('click', event => event.stopPropagation());
+  box.addEventListener('change', mark);
+  row.addEventListener('click', () => {
+    if (row.dataset.state) return;
+    box.checked = !box.checked;
+    mark();
+  });
+  row.append(box, info, sub);
+  if (outcome && outcome.text) {
+    const phrase = document.createElement('span');
+    phrase.className = 'outcome outcome-' + outcome.kind;
+    phrase.textContent = outcome.text;
+    row.append(phrase);
+  }
+  row.append(status);
+  games.append(row);
+}
+
+function showPlayer(player, list) {
+  showPick(player + ', recent games', 'Tick the games. Then press Start reviewing.');
+  fillGames(list.map(game => Object.assign({}, game, {
+    body: {text: game.pgn},
+    outcome: resultPhrase(player, game),
+  })));
+}
+
+function showGames(list) {
+  showPick('This PGN has many games.', 'Tick the ones you want. Then press Start reviewing.');
+  fillGames(list.map(game => Object.assign({body: {text: movesInput.value, game_index: game.index}}, game)));
+}
+
+function openLink(id) {
+  const link = document.createElement('a');
+  link.className = 'row-open';
+  link.href = '/r/' + id;
+  link.textContent = 'Open';
+  return link;
+}
+
+function waitJob(id, status) {
+  return new Promise((resolve, reject) => {
+    const tick = setInterval(async () => {
+      try {
+        const res = await fetch('/job/' + id);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        if (data.status === 'running') {
+          status.textContent = data.done + ' / ' + data.total;
+          return;
+        }
+        clearInterval(tick);
+        if (data.status === 'error') reject(new Error(data.error || 'The review failed.'));
+        else resolve();
+      } catch (e) {
+        clearInterval(tick);
+        reject(e);
+      }
+    }, 700);
+  });
+}
+
+async function pump() {
+  if (pumping) return;
+  pumping = true;
+  updateFloat();
+  while (queue.length) {
+    const row = queue.shift();
+    const status = row.querySelector('.row-status');
+    row.dataset.state = 'running';
+    status.textContent = '…';
+    try {
+      const data = await postReview(Object.assign({depth: depth}, bodies.get(row)));
+      if (!data.cached) await waitJob(data.id, status);
+      row.dataset.state = 'done';
+      status.textContent = '';
+      status.append(openLink(data.id));
+      loadLibrary();
+    } catch (e) {
+      delete row.dataset.state;
+      status.textContent = 'Failed';
+      showError(e.message);
+    }
+  }
+  pumping = false;
+  updateFloat();
+}
+
+floatGo.addEventListener('click', () => {
+  const rows = selectableRows();
+  rows.forEach(row => {
+    row.classList.remove('on');
+    row.dataset.state = 'queued';
+    const box = row.querySelector('.tick');
+    box.checked = false;
+    box.disabled = true;
+    row.querySelector('.row-status').textContent = 'Waiting';
+    queue.push(row);
+  });
+  updateFloat();
+  pump();
+});
+
+async function start(body, keep) {
+  showError('');
+  setBusy(true);
+  progress.textContent = '';
+  try {
+    const data = await postReview(body);
+    setBusy(false);
+    if (data.player) {
+      showPlayer(data.player, data.games);
+      clearOtherFields(keep);
+      return;
+    }
+    if (data.games) {
+      showGames(data.games);
+      clearOtherFields(keep);
+      return;
+    }
+    if (data.cached) {
+      location.href = '/r/' + data.id;
+      return;
+    }
+    progress.textContent = 'Starting…';
+    await waitJob(data.id, progress);
+    progress.textContent = '';
+    location.href = '/r/' + data.id;
+  } catch (e) {
+    setBusy(false);
+    progress.textContent = '';
+    showError(e.message);
+  }
+}
+
+document.getElementById('form').addEventListener('submit', event => {
+  event.preventDefault();
+  const filled = [nameInput, linkInput, movesInput].filter(el => el.value.trim());
+  if (!filled.length) {
+    showError('Type in one box.');
+    return;
+  }
+  if (filled.length > 1) {
+    showError('Use just one box.');
+    return;
+  }
+  start({text: filled[0].value, depth}, filled[0]);
+});
+
+let libAnchor = null;
+
+function libraryRows() {
+  return [...document.querySelectorAll('#library .lib-row')];
+}
+
+function selectedLibraryIds() {
+  return libraryRows().filter(row => row.classList.contains('on')).map(row => row.dataset.id);
+}
+
+function setLibrarySelected(row, on) {
+  row.classList.toggle('on', on);
+  row.setAttribute('aria-selected', on ? 'true' : 'false');
+}
+
+function updateLibraryTools() {
+  const tools = document.getElementById('lib-tools');
+  const count = document.getElementById('lib-count');
+  const n = selectedLibraryIds().length;
+  tools.hidden = n === 0;
+  count.textContent = n ? n + ' selected' : '';
+}
+
+function clearLibrarySelection() {
+  libraryRows().forEach(row => setLibrarySelected(row, false));
+  libAnchor = null;
+  updateLibraryTools();
+}
+
+function selectLibraryRow(row, event) {
+  const rows = libraryRows();
+  const extend = event.metaKey || event.ctrlKey;
+  if (event.shiftKey && libAnchor && rows.includes(libAnchor)) {
+    const start = rows.indexOf(libAnchor);
+    const end = rows.indexOf(row);
+    const lo = Math.min(start, end);
+    const hi = Math.max(start, end);
+    rows.forEach((item, index) => {
+      const inRange = index >= lo && index <= hi;
+      setLibrarySelected(item, extend ? (item.classList.contains('on') || inRange) : inRange);
+    });
+  } else if (extend) {
+    setLibrarySelected(row, !row.classList.contains('on'));
+    libAnchor = row;
+  } else {
+    rows.forEach(item => setLibrarySelected(item, item === row));
+    libAnchor = row;
+  }
+  updateLibraryTools();
+}
+
+function dropLibraryRows(ids) {
+  const gone = new Set(ids);
+  libraryRows().forEach(row => {
+    if (gone.has(row.dataset.id)) row.remove();
+  });
+  clearLibrarySelection();
+  if (!document.getElementById('library').children.length) {
+    document.getElementById('library-wrap').hidden = true;
+  }
+}
+
+async function postDelete(ids) {
+  const res = await fetch('/library/delete', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ids: ids}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  return data.deleted || [];
+}
+
+async function deleteIds(ids) {
+  if (!ids.length) return;
+  const message = ids.length === 1 ? 'Delete this review?' : 'Delete ' + ids.length + ' reviews?';
+  if (!confirm(message)) return;
+  try {
+    const deleted = await postDelete(ids);
+    dropLibraryRows(deleted);
+  } catch (e) {
+    showError(e.message);
+  }
+}
+
+function libraryRow(game) {
+  const row = document.createElement('li');
+  row.className = 'lib-row';
+  row.dataset.id = game.id;
+  row.setAttribute('aria-selected', 'false');
+  const face = document.createElement('div');
+  face.className = 'lib-face';
+  const name = document.createElement('span');
+  name.textContent = game.white + ' vs ' + game.black;
+  const end = document.createElement('span');
+  end.className = 'lib-end';
+  const meta = document.createElement('span');
+  meta.className = 'meta';
+  const date = game.date && game.date.indexOf('?') === -1 ? game.date : '';
+  meta.textContent = [date, game.result, 'depth ' + game.depth].filter(Boolean).join('  ');
+  const open = document.createElement('a');
+  open.className = 'see-review';
+  open.href = '/r/' + game.id;
+  open.textContent = 'See review';
+  open.addEventListener('click', event => event.stopPropagation());
+  end.append(meta, open);
+  face.append(name, end);
+  row.append(face);
+  row.addEventListener('click', event => {
+    if (event.button !== 0) return;
+    if (event.target.closest('.see-review')) return;
+    event.preventDefault();
+    selectLibraryRow(row, event);
+  });
+  return row;
+}
+
+document.getElementById('lib-bulk').addEventListener('click', () => {
+  deleteIds(selectedLibraryIds());
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+  if (event.repeat) return;
+  const target = event.target;
+  if (target instanceof Element && (target.closest('textarea, input, select') || target.isContentEditable)) return;
+  const ids = selectedLibraryIds();
+  if (!ids.length) return;
+  event.preventDefault();
+  deleteIds(ids);
+});
+
+async function loadLibrary() {
+  const wrap = document.getElementById('library-wrap');
+  const list = document.getElementById('library');
+  try {
+    const res = await fetch('/library');
+    const data = await res.json();
+    const saved = data.games || [];
+    list.textContent = '';
+    libAnchor = null;
+    updateLibraryTools();
+    if (!saved.length) {
+      wrap.hidden = true;
+      return;
+    }
+    saved.forEach(game => list.append(libraryRow(game)));
+    wrap.hidden = false;
+  } catch (e) {
+    wrap.hidden = true;
+  }
+}
+loadLibrary();
+</script>
+</body>
+</html>

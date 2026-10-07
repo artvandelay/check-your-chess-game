@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: oklch(17% 0.010 250);
+  --surface: oklch(21% 0.012 250);
+  --surface-2: oklch(25% 0.014 250);
+  --surface-3: oklch(29% 0.016 250);
+  --line: oklch(31% 0.014 250);
+  --line-strong: oklch(38% 0.016 250);
+  --text: oklch(94% 0.005 250);
+  --muted: oklch(74% 0.012 250);
+  --faint: oklch(62% 0.012 250);
+  --accent: oklch(74% 0.12 230);
+  --accent-hover: oklch(80% 0.11 230);
+  --sq-light: oklch(82% 0.020 240);
+  --sq-dark: oklch(56% 0.035 240);
+  --c-brilliant: oklch(76% 0.12 185);
+  --c-great: oklch(72% 0.12 255);
+  --c-best: oklch(76% 0.14 145);
+  --c-excellent: oklch(72% 0.10 145);
+  --c-good: oklch(70% 0.06 145);
+  --c-book: oklch(70% 0.05 70);
+  --c-forced: oklch(68% 0.02 250);
+  --c-inaccuracy: oklch(84% 0.14 95);
+  --c-mistake: oklch(76% 0.15 60);
+  --c-miss: oklch(68% 0.16 30);
+  --c-blunder: oklch(64% 0.20 25);
+  --font-ui: "IBM Plex Sans", "Helvetica Neue", Helvetica, sans-serif;
+  --font-num: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 16px;
+  --s4: 24px;
+  --s5: 40px;
+  --r-sm: 4px;
+  --r-md: 8px;
+  --board: min(72vh, calc(100vw - 520px), 640px);
+  --ease: 0.2s ease;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-ui); font-size: var(--text-sm); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.hint { color: var(--faint); font-size: var(--text-xs); }
+h2 { margin: 0; font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+.app { display: grid; grid-template-columns: auto 400px; gap: var(--s4); padding: var(--s4); max-width: 1180px; margin: 0 auto; align-items: start; }
+.left { width: calc(var(--board) + 28px); display: flex; flex-direction: column; gap: var(--s3); }
+.stage { display: grid; grid-template-columns: 20px var(--board); gap: var(--s2); }
+
+.evalbar { position: relative; height: var(--board); border-radius: var(--r-sm); overflow: hidden; background: oklch(24% 0.01 250); border: 1px solid var(--line); }
+.evalbar .fill { position: absolute; left: 0; right: 0; bottom: 0; background: oklch(92% 0.008 250); transition: height 0.3s ease; }
+.evalbar.flipped .fill { top: 0; bottom: auto; }
+
+.board { position: relative; width: var(--board); height: var(--board); display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); border-radius: var(--r-sm); overflow: hidden; user-select: none; }
+.sq { position: relative; }
+.sq.l { background: var(--sq-light); }
+.sq.d { background: var(--sq-dark); }
+.sq .hl { position: absolute; inset: 0; z-index: 1; opacity: 0.55; }
+.sq .hl.from { opacity: 0.35; }
+.sq img { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+.sq img.moving { z-index: 6; }
+.ghost { position: absolute; width: 12.5%; height: 12.5%; z-index: 5; pointer-events: none; }
+.ghost.snatch { animation: snatch 0.42s ease forwards; }
+.ghost.dump { animation: dump 0.46s ease forwards; }
+img.land-bright { animation: land-bright 0.28s ease; }
+img.land-shake { animation: land-shake 0.36s ease; }
+@keyframes snatch {
+  0% { transform: scale(1); opacity: 1; }
+  35% { transform: scale(1.18) translateY(-10%); opacity: 1; }
+  100% { transform: scale(0.35) translateY(-36%); opacity: 0; }
+}
+@keyframes dump {
+  0% { transform: none; opacity: 1; }
+  100% { transform: translateY(22%) rotate(14deg) scale(0.65); opacity: 0; }
+}
+@keyframes land-bright {
+  0% { transform: scale(1.14); }
+  55% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+@keyframes land-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8%) rotate(-3deg); }
+  50% { transform: translateX(7%) rotate(3deg); }
+  75% { transform: translateX(-3%); }
+}
+.sq .coord { position: absolute; z-index: 1; font-family: var(--font-num); font-size: 10px; font-weight: 600; }
+.sq .coord.f { right: 3px; bottom: 1px; }
+.sq .coord.r { left: 3px; top: 1px; }
+.sq.l .coord { color: var(--sq-dark); }
+.sq.d .coord { color: var(--sq-light); }
+.sq .mark { position: absolute; top: 3%; right: 3%; z-index: 3; min-width: 34%; height: 34%; padding: 0 4%; display: grid; place-items: center; border-radius: 999px; color: oklch(18% 0.01 250); font-size: calc(var(--board) / 34); font-weight: 600; box-shadow: 0 1px 3px oklch(0% 0 0 / 0.4); }
+.arrows { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; }
+.arrows .shaft { stroke: var(--accent); stroke-linecap: round; opacity: 0.85; }
+.arrows .tip { fill: var(--accent); opacity: 0.85; }
+
+.controls { display: flex; justify-content: space-between; padding-left: 28px; }
+.group { display: flex; gap: var(--s1); }
+.icon { width: 40px; height: 40px; display: inline-grid; place-items: center; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; transition: background var(--ease), border-color var(--ease), color var(--ease), transform var(--ease); }
+.icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.icon:hover:not(:disabled) { background: var(--surface-2); border-color: var(--line-strong); }
+.icon:active:not(:disabled) { transform: scale(0.96); }
+.icon[aria-pressed="true"] { color: var(--accent); border-color: color-mix(in oklch, var(--accent) 50%, var(--line)); }
+.icon.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.icon.primary svg { fill: currentColor; }
+.icon.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+.icon.primary[aria-pressed="true"] { background: var(--surface-2); border-color: var(--accent); color: var(--accent); }
+.icon:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.graphwrap { position: relative; margin-left: 28px; }
+.graph { display: block; width: 100%; height: 88px; border-radius: var(--r-sm); cursor: pointer; }
+.g-bg { fill: oklch(26% 0.012 250); }
+.g-area { fill: oklch(88% 0.01 250); }
+.g-mid { stroke: oklch(55% 0.01 250); stroke-width: 1; stroke-dasharray: 3 4; }
+.g-cur { stroke: var(--accent); stroke-width: 2; }
+.g-dot { stroke: var(--bg); stroke-width: 1.5; }
+.gtip { position: absolute; top: -6px; transform: translate(-50%, -100%); padding: var(--s1) var(--s2); border-radius: var(--r-sm); background: var(--surface-3); border: 1px solid var(--line-strong); font-size: var(--text-xs); white-space: nowrap; pointer-events: none; }
+.back { display: inline-flex; align-items: center; height: 32px; margin: 0 0 var(--s2) 28px; color: var(--accent); text-decoration: none; font-size: var(--text-sm); }
+.back:hover { text-decoration: underline; }
+.keys-hint { margin: 0 0 0 28px; color: var(--faint); font-size: var(--text-xs); }
+.keys-hint kbd { font-family: var(--font-num); font-size: var(--text-xs); padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; color: var(--muted); }
+
+.panel { display: flex; flex-direction: column; gap: var(--s3); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s3); }
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: var(--s2); margin-bottom: var(--s3); }
+
+.players { display: flex; flex-direction: column; gap: var(--s2); }
+.player { display: grid; grid-template-columns: 16px 1fr auto auto; align-items: center; gap: var(--s2); }
+.side-chip { width: 12px; height: 12px; border-radius: 2px; border: 1px solid var(--line-strong); }
+.side-chip.w { background: oklch(94% 0.005 250); }
+.side-chip.b { background: oklch(12% 0.01 250); }
+.name { font-size: var(--text-base); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acc-cap { color: var(--faint); font-size: var(--text-xs); }
+.acc { min-width: 64px; text-align: right; font-size: var(--text-xl); font-weight: 600; }
+.result { color: var(--faint); font-size: var(--text-xs); text-align: right; }
+
+.coach-top { display: flex; justify-content: space-between; align-items: center; }
+.badge { --b: var(--faint); display: inline-flex; align-items: center; gap: var(--s2); padding: var(--s1) var(--s2); border-radius: var(--r-sm); font-weight: 600; color: var(--b); background: color-mix(in oklch, var(--b) 16%, transparent); }
+.bm { font-weight: 600; }
+.evalnum { font-size: var(--text-lg); font-weight: 600; }
+.sentence { margin: var(--s3) 0 var(--s2); font-size: var(--text-lg); line-height: 1.35; text-wrap: pretty; }
+.bestrow { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--s3); row-gap: var(--s2); min-height: 32px; color: var(--muted); }
+.bestrow .bestphrase { display: inline-flex; align-items: baseline; gap: var(--s2); white-space: nowrap; }
+.bestrow strong { color: var(--text); }
+.bestrow .btn { flex: none; }
+.linebox { margin-top: var(--s3); padding: var(--s2) var(--s3); border-radius: var(--r-sm); background: color-mix(in oklch, var(--accent) 10%, var(--surface)); border: 1px solid color-mix(in oklch, var(--accent) 40%, transparent); }
+.line-head { display: flex; justify-content: space-between; align-items: center; gap: var(--s2); margin-bottom: var(--s2); }
+.line-seq { display: flex; flex-wrap: wrap; gap: var(--s1); }
+.lm { height: 28px; padding: 0 var(--s2); border-radius: var(--r-sm); border: 1px solid transparent; background: transparent; cursor: pointer; transition: background var(--ease), border-color var(--ease); }
+.lm:hover { background: var(--surface-2); }
+.lm.sel { border-color: var(--accent); color: var(--accent); }
+.explain { margin-top: var(--s3); display: flex; flex-direction: column; align-items: flex-start; gap: var(--s2); }
+.ex-text { margin: 0; padding-top: var(--s3); border-top: 1px solid var(--line); line-height: 1.5; text-wrap: pretty; }
+.err { margin: 0; color: var(--c-blunder); }
+
+.btn { display: inline-flex; align-items: center; gap: var(--s2); height: 32px; padding: 0 var(--s3); border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; transition: background var(--ease), border-color var(--ease), transform var(--ease); }
+.btn:hover:not(:disabled) { background: var(--surface-3); border-color: var(--line-strong); }
+.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn.ghost { position: static; width: auto; z-index: auto; pointer-events: auto; white-space: nowrap; padding: 0 var(--s2); background: transparent; border-color: transparent; color: var(--accent); }
+.btn.ghost:hover:not(:disabled) { background: color-mix(in oklch, var(--accent) 12%, transparent); border-color: transparent; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn kbd { padding: 0 var(--s1); border: 1px solid var(--line); border-radius: 3px; color: var(--faint); font-family: var(--font-num); font-size: var(--text-xs); }
+.spin { width: 14px; height: 14px; border: 2px solid var(--line-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+.seg button { height: 28px; padding: 0 var(--s2); border: 0; background: transparent; color: var(--muted); font-size: var(--text-xs); cursor: pointer; transition: background var(--ease), color var(--ease); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button:hover { background: var(--surface-2); }
+.seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.chipbtn { --b: var(--faint); display: inline-flex; align-items: center; gap: var(--s1); height: 32px; padding: 0 var(--s2); border-radius: 16px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; transition: background var(--ease), border-color var(--ease), color var(--ease); }
+.chipbtn .bm { color: var(--b); }
+.chipbtn .cnt { color: var(--faint); }
+.chipbtn:hover { border-color: var(--b); }
+.chipbtn[aria-pressed="true"] { background: color-mix(in oklch, var(--b) 18%, transparent); border-color: color-mix(in oklch, var(--b) 60%, transparent); color: var(--text); }
+.keynav { display: flex; justify-content: space-between; align-items: center; margin-top: var(--s3); }
+
+.movesec h2 { margin-bottom: var(--s2); }
+.moves { max-height: 320px; overflow-y: auto; scrollbar-width: thin; }
+.mrow { display: grid; grid-template-columns: 40px 1fr 1fr; align-items: center; }
+.mrow:nth-child(odd) { background: color-mix(in oklch, var(--surface-2) 50%, transparent); }
+.mno { padding-left: var(--s1); color: var(--faint); font-size: var(--text-xs); }
+.mv { --b: var(--faint); display: flex; justify-content: space-between; align-items: center; gap: var(--s1); height: 32px; padding: 0 var(--s2); border: 0; border-radius: var(--r-sm); background: transparent; font-family: var(--font-num); text-align: left; cursor: pointer; transition: background var(--ease); }
+.mv:hover { background: var(--surface-2); }
+.mv .bm { color: var(--b); }
+.mv.hit .san { box-shadow: inset 0 -2px 0 var(--b); }
+.mv.sel { background: color-mix(in oklch, var(--accent) 22%, transparent); }
+.mv.empty, .mv.empty:hover { color: var(--faint); background: transparent; cursor: default; }
+
+@media (max-width: 1100px) {
+  :root { --board: min(calc(100vw - 76px), 640px); }
+  .app { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <h1 class="sr-only">Game review</h1>
+  <div class="left">
+    __BACK__
+    <div class="stage">
+      <div id="evalbar" class="evalbar" role="img" aria-label="Evaluation"><div id="evalfill" class="fill"></div></div>
+      <div id="board" class="board" role="img" aria-label="Board"></div>
+    </div>
+    <div class="controls" role="toolbar" aria-label="Move navigation">
+      <div class="group">
+        <button id="first" class="icon" type="button" aria-label="First move" title="First move (Home)"><svg viewBox="0 0 24 24"><path d="M6 5v14M18 5l-9 7 9 7z"></path></svg></button>
+        <button id="prev" class="icon" type="button" aria-label="Previous move" title="Previous move (Left arrow)"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"></path></svg></button>
+        <button id="play" class="icon primary" type="button" aria-label="Play" aria-pressed="false" title="Play or pause (Space)"><svg viewBox="0 0 24 24"><path id="playicon" d="M8 5l11 7-11 7z"></path></svg></button>
+        <button id="next" class="icon" type="button" aria-label="Next move" title="Next move (Right arrow)"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg></button>
+        <button id="last" class="icon" type="button" aria-label="Last move" title="Last move (End)"><svg viewBox="0 0 24 24"><path d="M18 5v14M6 5l9 7-9 7z"></path></svg></button>
+      </div>
+      <div class="group">
+        <button id="flip" class="icon" type="button" aria-label="Flip board" aria-pressed="false" title="Flip board (F)"><svg viewBox="0 0 24 24"><path d="M7 4v16M4 17l3 3 3-3M17 20V4M14 7l3-3 3 3"></path></svg></button>
+        <button id="arrowbtn" class="icon" type="button" aria-label="Best-move arrow" aria-pressed="true" title="Best-move arrow (A)"><svg viewBox="0 0 24 24"><path d="M5 19L19 5M11 5h8v8"></path></svg></button>
+      </div>
+    </div>
+    <div class="graphwrap">
+      <svg id="graph" class="graph" role="img" aria-label="Evaluation across the game. Click to jump to a move."></svg>
+      <div id="gtip" class="gtip num" hidden></div>
+    </div>
+    <p class="keys-hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> move &middot; <kbd>Space</kbd> play &middot; <kbd>N</kbd> <kbd>P</kbd> key moments &middot; <kbd>B</kbd> line &middot; <kbd>E</kbd> explain &middot; <kbd>F</kbd> flip &middot; <kbd>A</kbd> arrow</p>
+  </div>
+  <aside class="panel">
+    <section class="card players" aria-label="Players">
+      <div id="players"></div>
+      <div id="result" class="result num"></div>
+    </section>
+    <section class="card coach" aria-labelledby="coach-h">
+      <h2 id="coach-h" class="sr-only">Current move</h2>
+      <div class="coach-top">
+        <span id="badge" class="badge"></span>
+        <span id="evalnum" class="evalnum num"></span>
+      </div>
+      <p id="sentence" class="sentence" aria-live="polite"></p>
+      <div id="bestrow" class="bestrow"></div>
+      <div id="linebox" class="linebox" hidden></div>
+      <div id="explain" class="explain"></div>
+    </section>
+    <section class="card keys" aria-labelledby="keys-h">
+      <div class="card-head">
+        <h2 id="keys-h">Key moments</h2>
+        <div id="sides" class="seg" role="group" aria-label="Whose moves">
+          <button type="button" data-side="all">Both</button><button type="button" data-side="w">White</button><button type="button" data-side="b">Black</button>
+        </div>
+      </div>
+      <div id="chips" class="chips"></div>
+      <div class="keynav">
+        <button id="keyprev" class="btn" type="button" title="Previous key moment (P)">Previous</button>
+        <span id="keycount" class="num muted"></span>
+        <button id="keynext" class="btn" type="button" title="Next key moment (N)">Next</button>
+      </div>
+    </section>
+    <section class="card movesec" aria-labelledby="moves-h">
+      <h2 id="moves-h">Moves</h2>
+      <div id="moves" class="moves"></div>
+    </section>
+  </aside>
+</main>
+<script>
+const DATA = __DATA__;
+const plies = DATA.plies;
+const N = plies.length;
+const FILES = 'abcdefgh';
+const SVGNS = 'http://www.w3.org/2000/svg';
+const PLAY_D = 'M8 5l11 7-11 7z';
+const PAUSE_D = 'M8 5v14M16 5v14';
+const META = {
+  Brilliant: {mark: '!!', v: '--c-brilliant'},
+  Great: {mark: '!', v: '--c-great'},
+  Best: {mark: '\u2605', v: '--c-best'},
+  Excellent: {mark: '\u2713', v: '--c-excellent'},
+  Good: {mark: '\u2713', v: '--c-good'},
+  Book: {mark: 'bk', v: '--c-book'},
+  Forced: {mark: '\u2192', v: '--c-forced'},
+  Inaccuracy: {mark: '?!', v: '--c-inaccuracy'},
+  Mistake: {mark: '?', v: '--c-mistake'},
+  Miss: {mark: '\u00d7', v: '--c-miss'},
+  Blunder: {mark: '??', v: '--c-blunder'},
+};
+const NOTABLE = new Set(['Brilliant', 'Great', 'Inaccuracy', 'Mistake', 'Miss', 'Blunder']);
+const DEFAULT_KEYS = ['Brilliant', 'Great', 'Mistake', 'Miss', 'Blunder'];
+const STORE = 'review:' + DATA.key;
+const S = {cur: 0, flipped: false, arrow: true, side: 'all', labels: new Set(DEFAULT_KEYS), playing: false, line: null, busy: {}, errors: {}};
+let timer = null;
+let lastPieces = null;
+let shown = null;
+const CASTLE_ROOK = {e1g1: ['h1', 'f1'], e1c1: ['a1', 'd1'], e8g8: ['h8', 'f8'], e8c8: ['a8', 'd8']};
+const GOOD_TAKE = new Set(['Book', 'Best', 'Excellent', 'Good', 'Great', 'Brilliant', 'Forced']);
+const TRAVEL = {
+  Book: '0.16s ease-out',
+  Forced: '0.16s ease-out',
+  Best: '0.22s cubic-bezier(.2,.8,.2,1)',
+  Excellent: '0.22s cubic-bezier(.2,.8,.2,1)',
+  Good: '0.22s cubic-bezier(.2,.8,.2,1)',
+  Great: '0.32s cubic-bezier(.15,1.2,.3,1)',
+  Brilliant: '0.36s cubic-bezier(.12,1.45,.3,1)',
+  Inaccuracy: '0.28s cubic-bezier(.4,.05,.6,1)',
+  Mistake: '0.34s cubic-bezier(.45,.05,.7,1)',
+  Miss: '0.32s cubic-bezier(.5,0,.7,1)',
+  Blunder: '0.42s cubic-bezier(.55,.02,.8,1.35)',
+};
+const $ = id => document.getElementById(id);
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function svgEl(tag, attrs) {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+}
+function button(text, cls, onClick, kbd) {
+  const b = el('button', 'btn ' + cls, text);
+  b.type = 'button';
+  if (onClick) b.onclick = onClick;
+  if (kbd) b.append(el('kbd', '', kbd));
+  return b;
+}
+function color(label) { return 'var(' + (META[label] || META.Forced).v + ')'; }
+function ep(cp) { const x = Math.max(-1500, Math.min(1500, cp)); return 1 / (1 + Math.exp(-DATA.k * x)); }
+function cpAt(i) { return i === 0 ? 0 : plies[i - 1].eval_cp_white; }
+function showsBest(p) { return p.uci !== p.best_uci && p.coach_label !== 'Book' && p.coach_label !== 'Forced'; }
+function moveNum(p) { return p.move_no + (p.side === 'w' ? '.' : '...'); }
+function sideOk(p) { return S.side === 'all' || p.side === S.side; }
+function isTarget(p) { return S.labels.has(p.coach_label) && sideOk(p); }
+function parseFen(fen) {
+  const out = {};
+  fen.split(' ')[0].split('/').forEach((row, ri) => {
+    let f = 0;
+    for (const ch of row) {
+      if (/\d/.test(ch)) { f += Number(ch); } else { out[FILES[f] + (8 - ri)] = ch; f += 1; }
+    }
+  });
+  return out;
+}
+function center(name) {
+  const f = name.charCodeAt(0) - 97, r = Number(name[1]) - 1;
+  const x = S.flipped ? 7 - f : f, y = S.flipped ? r : 7 - r;
+  return {x: x + 0.5, y: y + 0.5};
+}
+
+function load() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
+    if (!saved) return;
+    if (Number.isInteger(saved.cur)) S.cur = Math.max(0, Math.min(N, saved.cur));
+    S.flipped = !!saved.flipped;
+    S.arrow = saved.arrow !== false;
+    if (['all', 'w', 'b'].includes(saved.side)) S.side = saved.side;
+    if (Array.isArray(saved.labels)) S.labels = new Set(saved.labels.filter(l => META[l]));
+  } catch (e) {
+    console.warn('could not restore review state', e);
+  }
+}
+function save() {
+  try {
+    localStorage.setItem(STORE, JSON.stringify({cur: S.cur, flipped: S.flipped, arrow: S.arrow, side: S.side, labels: [...S.labels]}));
+  } catch (e) {
+    console.warn('could not save review state', e);
+  }
+}
+
+function view() {
+  if (S.line) {
+    const p = plies[S.line.ply];
+    if (S.line.step === 0) return {fen: p.fen_before, last: null, mark: null, arrow: null, hl: 'accent'};
+    const fr = p.best_line[S.line.step - 1];
+    return {fen: fr.fen, last: fr.uci, mark: null, arrow: null, hl: 'accent'};
+  }
+  if (S.cur === 0) return {fen: DATA.start_fen, last: null, mark: null, arrow: null, hl: null};
+  const p = plies[S.cur - 1];
+  return {fen: p.fen_after, last: p.uci, mark: p.coach_label, arrow: S.arrow && showsBest(p) ? p.best_uci : null, hl: p.coach_label};
+}
+
+function arrowLayer(uci) {
+  const svg = svgEl('svg', {class: 'arrows', viewBox: '0 0 8 8', 'aria-hidden': 'true'});
+  if (!uci) return svg;
+  const a = center(uci.slice(0, 2)), b = center(uci.slice(2, 4));
+  const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len, px = -uy, py = ux;
+  const head = 0.42, half = 0.22;
+  const bx = b.x - ux * head, by = b.y - uy * head;
+  const tx = b.x - ux * 0.08, ty = b.y - uy * 0.08;
+  svg.append(svgEl('line', {class: 'shaft', x1: a.x + ux * 0.2, y1: a.y + uy * 0.2, x2: bx, y2: by, 'stroke-width': 0.16}));
+  svg.append(svgEl('polygon', {class: 'tip', points: `${tx},${ty} ${bx + px * half},${by + py * half} ${bx - px * half},${by - py * half}`}));
+  return svg;
+}
+
+function place(name) {
+  const f = name.charCodeAt(0) - 97, r = Number(name[1]) - 1;
+  const x = S.flipped ? 7 - f : f, y = S.flipped ? r : 7 - r;
+  return {left: (x * 12.5) + '%', top: (y * 12.5) + '%'};
+}
+function capturedSquare(prev, uci) {
+  if (!prev || !uci) return null;
+  const from = uci.slice(0, 2), to = uci.slice(2, 4);
+  if (prev[to] && prev[to] !== prev[from]) return to;
+  const mover = prev[from];
+  if (mover && mover.toLowerCase() === 'p' && from[0] !== to[0] && !prev[to]) return to[0] + from[1];
+  return null;
+}
+function slidePiece(img, fromRect, travel, land) {
+  const now = img.getBoundingClientRect();
+  const dx = fromRect.left - now.left, dy = fromRect.top - now.top;
+  if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+  img.classList.add('moving');
+  img.style.transition = 'none';
+  img.style.transform = `translate(${dx}px, ${dy}px)`;
+  void img.offsetWidth;
+  requestAnimationFrame(() => {
+    img.style.transition = 'transform ' + travel;
+    img.style.transform = '';
+    const done = () => {
+      img.style.transition = '';
+      img.classList.remove('moving');
+      if (land) {
+        img.classList.add(land);
+        img.addEventListener('animationend', () => img.classList.remove(land), {once: true});
+      }
+    };
+    img.addEventListener('transitionend', done, {once: true});
+  });
+}
+function renderBoard(v) {
+  const board = $('board');
+  const prev = lastPieces;
+  const rects = {};
+  board.querySelectorAll('img[data-sq]').forEach(img => { rects[img.dataset.sq] = img.getBoundingClientRect(); });
+  const step = S.line ? S.line.step : S.cur;
+  const mode = S.line ? 'line' : 'game';
+  const ply = S.line ? S.line.ply : 0;
+  const oneStep = shown && shown.mode === mode && shown.ply === ply && shown.flipped === S.flipped && Math.abs(step - shown.step) === 1;
+  board.textContent = '';
+  const pieces = parseFen(v.fen);
+  const from = v.last ? v.last.slice(0, 2) : null;
+  const to = v.last ? v.last.slice(2, 4) : null;
+  const hl = v.hl === 'accent' ? 'var(--accent)' : (v.hl ? color(v.hl) : null);
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      const f = S.flipped ? 7 - x : x, r = S.flipped ? y : 7 - y;
+      const name = FILES[f] + (r + 1);
+      const cell = el('div', 'sq ' + ((f + r) % 2 ? 'l' : 'd'));
+      if (hl && (name === from || name === to)) {
+        const h = el('div', name === from ? 'hl from' : 'hl');
+        h.style.background = hl;
+        cell.append(h);
+      }
+      if (y === 7) cell.append(el('span', 'coord f', FILES[f]));
+      if (x === 0) cell.append(el('span', 'coord r', String(r + 1)));
+      const pc = pieces[name];
+      if (pc) {
+        const img = el('img');
+        img.src = DATA.pieces[pc];
+        img.alt = '';
+        img.draggable = false;
+        img.dataset.sq = name;
+        cell.append(img);
+      }
+      if (v.mark && name === to) {
+        const m = el('span', 'mark num', META[v.mark].mark);
+        m.style.background = color(v.mark);
+        cell.append(m);
+      }
+      board.append(cell);
+    }
+  }
+  board.append(arrowLayer(v.arrow));
+  const quality = S.line ? null : (S.cur > 0 ? plies[S.cur - 1].coach_label : null);
+  const taken = oneStep ? capturedSquare(prev, v.last) : null;
+  if (oneStep && from && rects[from]) {
+    const travel = TRAVEL[quality] || '0.22s ease';
+    const land = quality === 'Brilliant' || quality === 'Great' ? 'land-bright' : (quality === 'Blunder' || quality === 'Miss' ? 'land-shake' : '');
+    const mover = board.querySelector('img[data-sq="' + to + '"]');
+    if (mover) slidePiece(mover, rects[from], travel, land);
+    const rook = v.last && CASTLE_ROOK[v.last];
+    if (rook && rects[rook[0]]) {
+      const rookImg = board.querySelector('img[data-sq="' + rook[1] + '"]');
+      if (rookImg) slidePiece(rookImg, rects[rook[0]], travel, '');
+    }
+    if (taken && prev[taken] && DATA.pieces[prev[taken]]) {
+      const ghost = el('img', 'ghost ' + (GOOD_TAKE.has(quality) ? 'snatch' : 'dump'));
+      ghost.src = DATA.pieces[prev[taken]];
+      ghost.alt = '';
+      const spot = place(taken);
+      ghost.style.left = spot.left;
+      ghost.style.top = spot.top;
+      board.append(ghost);
+      ghost.addEventListener('animationend', () => ghost.remove(), {once: true});
+    }
+  }
+  lastPieces = pieces;
+  shown = {mode, ply, step, flipped: S.flipped};
+  let label = 'Board at the start of the game';
+  if (S.line) label = 'Board in the engine line';
+  else if (S.cur > 0) label = 'Board after ' + moveNum(plies[S.cur - 1]) + ' ' + plies[S.cur - 1].san;
+  board.setAttribute('aria-label', label);
+}
+
+function renderEvalBar() {
+  $('evalfill').style.height = (ep(cpAt(S.cur)) * 100).toFixed(1) + '%';
+  $('evalbar').classList.toggle('flipped', S.flipped);
+  $('evalbar').setAttribute('aria-label', 'Evaluation ' + (S.cur === 0 ? '0.00' : plies[S.cur - 1].eval));
+}
+
+function renderGraph() {
+  const svg = $('graph');
+  const W = svg.clientWidth || 600, H = 88;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.textContent = '';
+  const xs = i => (N ? (i / N) * W : 0);
+  const ys = i => (1 - ep(cpAt(i))) * H;
+  let d = `M0 ${H}`;
+  for (let i = 0; i <= N; i++) d += ` L${xs(i).toFixed(1)} ${ys(i).toFixed(1)}`;
+  d += ` L${W} ${H} Z`;
+  svg.append(svgEl('rect', {class: 'g-bg', x: 0, y: 0, width: W, height: H}));
+  svg.append(svgEl('path', {class: 'g-area', d}));
+  svg.append(svgEl('line', {class: 'g-mid', x1: 0, y1: H / 2, x2: W, y2: H / 2}));
+  svg.append(svgEl('line', {class: 'g-cur', x1: xs(S.cur), y1: 0, x2: xs(S.cur), y2: H}));
+  plies.forEach((p, i) => {
+    if (!isTarget(p)) return;
+    const c = svgEl('circle', {class: 'g-dot', cx: xs(i + 1), cy: ys(i + 1), r: 4});
+    c.style.fill = color(p.coach_label);
+    const t = svgEl('title', {});
+    t.textContent = moveNum(p) + ' ' + p.san + ' \u00b7 ' + p.coach_label;
+    c.append(t);
+    svg.append(c);
+  });
+}
+function graphIndex(ev) {
+  const r = $('graph').getBoundingClientRect();
+  const x = Math.max(0, Math.min(r.width, ev.clientX - r.left));
+  return N ? Math.round((x / r.width) * N) : 0;
+}
+
+function renderHeader() {
+  const s = DATA.summary;
+  const box = $('players');
+  box.textContent = '';
+  for (const [side, name] of [['w', s.white], ['b', s.black]]) {
+    const row = el('div', 'player');
+    const acc = s.accuracy[side];
+    row.append(el('span', 'side-chip ' + side), el('span', 'name', name), el('span', 'acc-cap', 'accuracy'),
+      el('span', 'acc num', acc == null ? '\u2013' : Number(acc).toFixed(1)));
+    box.append(row);
+  }
+  $('result').textContent = s.result;
+}
+
+function renderCoach() {
+  const badge = $('badge'), text = $('sentence'), ev = $('evalnum'), best = $('bestrow'), lineBox = $('linebox'), exBox = $('explain');
+  best.textContent = '';
+  lineBox.textContent = '';
+  exBox.textContent = '';
+  if (S.cur === 0 && !S.line) {
+    badge.textContent = 'Start';
+    badge.style.setProperty('--b', 'var(--faint)');
+    text.textContent = 'Start of the game. Step forward or pick a move.';
+    ev.textContent = '0.00';
+    lineBox.hidden = true;
+    return;
+  }
+  const idx = S.line ? S.line.ply : S.cur - 1;
+  const p = plies[idx];
+  badge.textContent = '';
+  badge.append(el('span', 'bm num', META[p.coach_label].mark), document.createTextNode(p.coach_label));
+  badge.style.setProperty('--b', color(p.coach_label));
+  text.textContent = moveNum(p) + ' ' + p.coach_text;
+  ev.textContent = p.eval;
+  if (showsBest(p)) {
+    const phrase = el('span', 'bestphrase');
+    phrase.append(document.createTextNode('Best was'), el('strong', 'num', p.best_san));
+    best.append(phrase);
+    if (p.best_line.length && !S.line) {
+      const b = button('Show line', 'ghost', enterLine, 'B');
+      b.title = 'Play the engine line on the board (B)';
+      best.append(b);
+    }
+  } else if (p.coach_label === 'Book') {
+    best.append(el('span', '', 'Opening theory'));
+  } else if (p.coach_label === 'Forced') {
+    best.append(el('span', '', 'The only legal move'));
+  } else {
+    best.append(el('span', '', "The engine's top choice"));
+  }
+  lineBox.hidden = !S.line;
+  if (S.line) {
+    const head = el('div', 'line-head');
+    head.append(el('span', '', 'Engine line instead of ' + moveNum(p) + ' ' + p.san), button('Back to game', 'ghost', exitLine, 'Esc'));
+    const seq = el('div', 'line-seq');
+    p.best_line.forEach((fr, i) => {
+      const b = el('button', 'lm num' + (S.line.step === i + 1 ? ' sel' : ''), fr.san);
+      b.type = 'button';
+      b.onclick = () => { S.line.step = i + 1; render(); };
+      seq.append(b);
+    });
+    lineBox.append(head, seq);
+    return;
+  }
+  renderExplain(p, idx, exBox);
+}
+
+function renderExplain(p, idx, box) {
+  if (p.explanation) {
+    box.append(el('p', 'ex-text', p.explanation));
+    return;
+  }
+  if (!DATA.serve) {
+    const b = button('Explain this move', '', null);
+    b.disabled = true;
+    b.title = 'Start the viewer with review.py --serve to ask for explanations';
+    box.append(b, el('span', 'hint', 'Explanations need the local server: review.py game.pgn --serve'));
+    return;
+  }
+  const busy = !!S.busy[idx];
+  const label = busy ? 'Explaining\u2026' : (S.errors[idx] ? 'Try again' : 'Explain this move');
+  const b = button(label, '', () => explain(idx), busy ? null : 'E');
+  b.disabled = busy;
+  b.title = 'Ask the coach model to explain this move (E)';
+  if (busy) b.prepend(el('span', 'spin'));
+  box.append(b);
+  if (S.errors[idx]) {
+    const e = el('p', 'err', S.errors[idx]);
+    e.setAttribute('role', 'alert');
+    box.append(e);
+  }
+}
+
+async function explain(idx) {
+  if (!DATA.serve || S.busy[idx] || plies[idx].explanation) return;
+  S.busy[idx] = true;
+  delete S.errors[idx];
+  render();
+  try {
+    const explainUrl = DATA.id ? ('/r/' + DATA.id + '/explain') : '/explain';
+    const res = await fetch(explainUrl, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ply: idx})});
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    plies[idx].explanation = data.explanation;
+  } catch (e) {
+    S.errors[idx] = 'Could not get an explanation: ' + e.message;
+  } finally {
+    delete S.busy[idx];
+    render();
+  }
+}
+
+function targets() {
+  const out = [];
+  plies.forEach((p, i) => { if (isTarget(p)) out.push(i + 1); });
+  return out;
+}
+function nextKey(dir) {
+  const t = targets();
+  const pos = dir > 0 ? t.find(i => i > S.cur) : [...t].reverse().find(i => i < S.cur);
+  if (pos !== undefined) go(pos);
+}
+function renderKeys() {
+  document.querySelectorAll('#sides button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.side === S.side)));
+  const chips = $('chips');
+  chips.textContent = '';
+  for (const label of DATA.labels) {
+    const n = plies.filter(p => p.coach_label === label && sideOk(p)).length;
+    if (!n) continue;
+    const c = el('button', 'chipbtn');
+    c.type = 'button';
+    c.setAttribute('aria-pressed', String(S.labels.has(label)));
+    c.style.setProperty('--b', color(label));
+    c.append(el('span', 'bm num', META[label].mark), el('span', '', label), el('span', 'cnt num', String(n)));
+    c.onclick = () => {
+      if (S.labels.has(label)) S.labels.delete(label); else S.labels.add(label);
+      render();
+    };
+    chips.append(c);
+  }
+  const t = targets();
+  $('keycount').textContent = t.length ? t.filter(i => i <= S.cur).length + ' / ' + t.length : 'none selected';
+  $('keyprev').disabled = !t.some(i => i < S.cur);
+  $('keynext').disabled = !t.some(i => i > S.cur);
+}
+
+function buildMoves() {
+  const box = $('moves');
+  box.textContent = '';
+  let row = null;
+  plies.forEach((p, i) => {
+    if (p.side === 'w' || !row) {
+      row = el('div', 'mrow');
+      row.append(el('span', 'mno num', p.move_no + '.'));
+      if (p.side === 'b') row.append(el('span', 'mv empty', '\u2026'));
+      box.append(row);
+    }
+    const b = el('button', 'mv');
+    b.type = 'button';
+    b.dataset.i = i + 1;
+    b.style.setProperty('--b', color(p.coach_label));
+    b.append(el('span', 'san', p.san));
+    if (NOTABLE.has(p.coach_label)) b.append(el('span', 'bm num', META[p.coach_label].mark));
+    b.title = p.coach_label + ' \u00b7 ' + p.eval;
+    b.onclick = () => go(i + 1);
+    row.append(b);
+  });
+}
+function renderMoves() {
+  document.querySelectorAll('#moves .mv[data-i]').forEach(b => {
+    const i = Number(b.dataset.i);
+    const on = i === S.cur && !S.line;
+    b.classList.toggle('sel', on);
+    if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+    b.classList.toggle('hit', isTarget(plies[i - 1]));
+  });
+  const sel = document.querySelector('#moves .mv.sel');
+  if (sel) scrollMoves(sel);
+}
+function scrollMoves(sel) {
+  const box = $('moves');
+  const selRect = sel.getBoundingClientRect();
+  const boxRect = box.getBoundingClientRect();
+  if (selRect.top < boxRect.top) box.scrollTop -= boxRect.top - selRect.top;
+  else if (selRect.bottom > boxRect.bottom) box.scrollTop += selRect.bottom - boxRect.bottom;
+}
+
+function renderControls() {
+  const lineLen = S.line ? plies[S.line.ply].best_line.length : 0;
+  $('prev').disabled = S.line ? S.line.step === 0 : S.cur === 0;
+  $('next').disabled = S.line ? S.line.step === lineLen : S.cur === N;
+  $('first').disabled = !S.line && S.cur === 0;
+  $('last').disabled = !S.line && S.cur === N;
+  $('play').disabled = N === 0;
+  $('play').setAttribute('aria-pressed', String(S.playing));
+  $('play').setAttribute('aria-label', S.playing ? 'Pause' : 'Play');
+  $('playicon').setAttribute('d', S.playing ? PAUSE_D : PLAY_D);
+  $('flip').setAttribute('aria-pressed', String(S.flipped));
+  $('arrowbtn').setAttribute('aria-pressed', String(S.arrow));
+}
+
+function render() {
+  renderBoard(view());
+  renderEvalBar();
+  renderGraph();
+  renderCoach();
+  renderKeys();
+  renderMoves();
+  renderControls();
+  if (!S.line) save();
+}
+
+function show(i) {
+  S.line = null;
+  S.cur = Math.max(0, Math.min(N, i));
+  render();
+}
+function stopPlay() {
+  S.playing = false;
+  if (timer) { clearInterval(timer); timer = null; }
+}
+function go(i) {
+  stopPlay();
+  show(i);
+}
+function startPlay() {
+  if (S.cur >= N) S.cur = 0;
+  S.line = null;
+  S.playing = true;
+  timer = setInterval(() => {
+    if (S.cur >= N) { stopPlay(); render(); return; }
+    show(S.cur + 1);
+  }, 1100);
+}
+function togglePlay() {
+  if (S.playing) stopPlay(); else startPlay();
+  render();
+}
+function enterLine() {
+  if (S.line || S.cur === 0) return;
+  const p = plies[S.cur - 1];
+  if (!showsBest(p) || !p.best_line.length) return;
+  stopPlay();
+  S.line = {ply: S.cur - 1, step: 1};
+  render();
+}
+function exitLine() {
+  S.line = null;
+  render();
+}
+function step(d) {
+  if (S.line) {
+    const len = plies[S.line.ply].best_line.length;
+    S.line.step = Math.max(0, Math.min(len, S.line.step + d));
+    render();
+  } else {
+    go(S.cur + d);
+  }
+}
+
+window.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const tag = e.target && e.target.tagName;
+  if (tag === 'TEXTAREA' || tag === 'INPUT' || (e.target && e.target.isContentEditable)) return;
+  const k = e.key;
+  if (k === 'ArrowRight') step(1);
+  else if (k === 'ArrowLeft') step(-1);
+  else if (k === 'Home') go(0);
+  else if (k === 'End') go(N);
+  else if (k === 'n' || k === 'N') nextKey(1);
+  else if (k === 'p' || k === 'P') nextKey(-1);
+  else if (k === 'b' || k === 'B') enterLine();
+  else if (k === 'Escape') { if (S.line) exitLine(); else return; }
+  else if (k === 'f' || k === 'F') { S.flipped = !S.flipped; render(); }
+  else if (k === 'a' || k === 'A') { S.arrow = !S.arrow; render(); }
+  else if (k === 'e' || k === 'E') { if (!S.line && S.cur > 0) explain(S.cur - 1); }
+  else if (k === ' ') { if (tag === 'BUTTON') return; togglePlay(); }
+  else return;
+  e.preventDefault();
+}, true);
+
+$('first').onclick = () => go(0);
+$('last').onclick = () => go(N);
+$('prev').onclick = () => step(-1);
+$('next').onclick = () => step(1);
+$('play').onclick = togglePlay;
+$('flip').onclick = () => { S.flipped = !S.flipped; render(); };
+$('arrowbtn').onclick = () => { S.arrow = !S.arrow; render(); };
+$('keyprev').onclick = () => nextKey(-1);
+$('keynext').onclick = () => nextKey(1);
+$('sides').addEventListener('click', e => {
+  const b = e.target.closest('button[data-side]');
+  if (!b) return;
+  S.side = b.dataset.side;
+  render();
+});
+$('graph').addEventListener('click', ev => go(graphIndex(ev)));
+$('graph').addEventListener('mousemove', ev => {
+  const i = graphIndex(ev), tip = $('gtip'), r = $('graph').getBoundingClientRect();
+  tip.textContent = i === 0 ? 'Start' : moveNum(plies[i - 1]) + ' ' + plies[i - 1].san + ' \u00b7 ' + plies[i - 1].coach_label + ' \u00b7 ' + plies[i - 1].eval;
+  tip.style.left = Math.max(70, Math.min(r.width - 70, ev.clientX - r.left)) + 'px';
+  tip.hidden = false;
+});
+$('graph').addEventListener('mouseleave', () => { $('gtip').hidden = true; });
+window.addEventListener('resize', renderGraph);
+
+load();
+renderHeader();
+buildMoves();
+render();
+window.__review = {S, plies, render, go, step, targets, enterLine, exitLine};
+</script>
+</body>
+</html>
