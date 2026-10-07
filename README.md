@@ -1,5 +1,9 @@
 # Check your chess game
 
+Live homepage: https://artvandelay.github.io/check-your-chess-game/
+
+That page shows the homepage. To review a game, run this on your computer.
+
 Check your chess game reviews one chess game and labels every move.
 You can start from a Chess.com name, a Chess.com link, or a PGN file.
 
